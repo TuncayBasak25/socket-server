@@ -1,0 +1,19 @@
+{
+  "name": "socket-server",
+  "version": "1.0.0",
+  "description": "An external api for only webSocket connections.",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "socket-server"
+  },
+  "author": "Tuncay Basak",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^7.4.2"
+  }
+}
