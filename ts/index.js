@@ -24,34 +24,44 @@ class Socket {
         this.methods = {};
         this.socket = socket;
         this.id = Socket.count;
-        socket.on("open", () => {
-            this.onOpen();
-        });
-        socket.on("message", (data) => {
-            this.handle(JSON.parse(data.toString()));
+        socket.on("message", (rawdata) => {
+            try {
+                const data = JSON.parse(rawdata.toString());
+                this.handle(data);
+            }
+            catch (error) {
+                this.sendMessage("error", "Unvalid JSON format!");
+            }
         });
         socket.on("close", () => {
             this.onClose();
             Socket.delete(this.id);
         });
+        this.initMethods();
     }
-    setMethod(name, func) {
-        this.methods[name] = func;
+    registerMethod(name, func, validate) {
+        this.methods[name] = (data) => {
+            if (validate && !validate(data)) {
+                return this.sendMessage("error", `Unvalid data format for method [${name}]!`);
+            }
+            func.call(this, data);
+        };
     }
-    onOpen() {
-        //for derived class
+    initMethods() {
+        //To reigister methods at instanciation
     }
     onClose() {
         //For derived class
     }
     handle(data) {
-        if (typeof data.method != "string") {
+        const methodName = data.method;
+        if (typeof methodName != "string") {
             return this.sendMessage("error", "You have to specify a 'method' attribute implemented by the server!");
         }
-        if (!this.methods[data.method]) {
-            return this.sendMessage("error", `No implementation for 'method' ${data.method}!`);
+        if (!this.methods[methodName]) {
+            return this.sendMessage("error", `No implementation for 'method' ${methodName}!`);
         }
-        this.methods[data.action](data);
+        this.methods[methodName](data);
     }
     sendMessage(key, value) {
         const obj = {};
