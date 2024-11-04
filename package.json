@@ -1,5 +1,5 @@
 {
-  "name": "ts-base-template",
+  "name": "socket-server",
   "version": "1.0.0",
   "description": "New typescript project",
   "main": "ts/index.js",
