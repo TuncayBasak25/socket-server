@@ -1,15 +1,19 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Socket = void 0;
 const ws_1 = require("ws");
-const PORT = process.env.PORT || 8080;
-const server = new ws_1.WebSocketServer({ port: Number(PORT) });
-server.on('listening', () => {
-    console.log(`WebSocket server is running on ws://localhost:${PORT}`);
-});
-server.on('connection', (socket) => {
-    Socket.create(socket);
-});
 class Socket {
+    static start(port = 8080) {
+        const PORT = process.env.PORT || port;
+        const server = new ws_1.WebSocketServer({ port: Number(PORT) });
+        server.on('listening', () => {
+            console.log(`WebSocket server is running on ws://localhost:${PORT}`);
+        });
+        server.on('connection', (socket) => {
+            this.create(socket);
+        });
+        return server;
+    }
     static create(socket) {
         this.instances.set(this.count, new this(socket));
         this.count++;
@@ -69,5 +73,6 @@ class Socket {
         this.socket.send(JSON.stringify(obj));
     }
 }
+exports.Socket = Socket;
 Socket.instances = new Map();
 Socket.count = 0;

@@ -1,24 +1,28 @@
 import WebSocket, { WebSocketServer } from 'ws';
 
-const PORT = process.env.PORT || 8080;
-const server = new WebSocketServer({ port: Number(PORT) });
-
-server.on('listening', () => {
-    console.log(`WebSocket server is running on ws://localhost:${PORT}`);
-});
-
-server.on('connection', (socket) => {
-    Socket.create(socket);
-});
-
 type MessageStatus = "ok" | "error";
 
-class Socket {
+export abstract class Socket {
+    static start(port: number = 8080) {
+        const PORT = process.env.PORT || port;
+        const server = new WebSocketServer({ port: Number(PORT) });
+        
+        server.on('listening', () => {
+            console.log(`WebSocket server is running on ws://localhost:${PORT}`);
+        });
+        
+        server.on('connection', (socket) => {
+            this.create(socket);
+        });
+
+        return server;
+    }
+
     private static readonly instances: Map<number, Socket> = new Map();
     private static count = 0;
 
     static create(socket: WebSocket) {
-        this.instances.set(this.count, new this(socket));
+        this.instances.set(this.count, new (this as any)(socket));
         this.count++;
     }
 
