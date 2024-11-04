@@ -34,11 +34,11 @@ export abstract class Socket {
         return this.instances.get(id);
     }
 
+    readonly id: number;
     private readonly socket: WebSocket;
-    private readonly id: number;
     private readonly methods: { [key: string]: (data: any) => void } = {};
 
-    private constructor(socket: WebSocket) {
+    protected constructor(socket: WebSocket) {
         this.socket = socket;
         this.id = Socket.count;
 
