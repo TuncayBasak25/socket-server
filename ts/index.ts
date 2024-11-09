@@ -25,7 +25,7 @@ export class Socket {
     }
     
     readonly id: number;
-    readonly data: { [key: string]: any } = {};
+    readonly data: Map<string, any> = new Map();
     protected constructor(private readonly webSocket: WebSocket) {
         this.id = Socket.socketCount++;
         Socket.sockets.set(this.id, this);
@@ -35,32 +35,53 @@ export class Socket {
         webSocket.on("close", () => Socket.sockets.delete(this.id));
     }
 
-    sendMessage(method: string, body: any) {
+    set(key: string, value: any) {
+        this.data.set(key, value);
+    }
+
+    get(key: string) {
+        return this.data.get(key);
+    }
+
+    delete(key: string) {
+        this.data.delete(key);
+    }
+
+    send(method: string, body: any) {
         this.webSocket.send(JSON.stringify({
             method,
             body
         }));
     }
 
-    sendError(errorBody: any) {
-        this.sendMessage("error", errorBody);
+    query(key: string) {
+        this.send("query", key);
+    }
+
+    error(errorBody: any) {
+        this.send("error", errorBody);
     }
 
     private handleMessage(message: string) {
         const data = parseJson(message);
 
         if (!data) {
-            return this.sendError("Unvalid JSON format!");
+            return this.error("Unvalid JSON format!");
         }
-        const { method, body } = data;
-        
-        if (typeof method != "string") {
-            return this.sendError("No method!");
+        const { method, body, set, get } = data;
+
+        method && Socket.methods[method](this, body);
+
+        if (typeof set == "object") {
+            if (typeof set.key != "string") {
+                return this.error("Unvalid set!")
+            }
+            this.set(set.key, set.value);
         }
-        if (!Socket.methods[method]) {
-            return this.sendError(`No method named [${method}]!`);
+
+        if (typeof get == "string") {
+            this.send("get", this.get(get));
         }
-        Socket.methods[method](this, body);
     }
 }
 

@@ -18,34 +18,49 @@ class Socket {
     }
     constructor(webSocket) {
         this.webSocket = webSocket;
-        this.data = {};
+        this.data = new Map();
         this.id = Socket.socketCount++;
         Socket.sockets.set(this.id, this);
         webSocket.on("message", (rawData) => this.handleMessage(rawData.toString()));
         webSocket.on("close", () => Socket.sockets.delete(this.id));
     }
-    sendMessage(method, body) {
+    set(key, value) {
+        this.data.set(key, value);
+    }
+    get(key) {
+        return this.data.get(key);
+    }
+    delete(key) {
+        this.data.delete(key);
+    }
+    send(method, body) {
         this.webSocket.send(JSON.stringify({
             method,
             body
         }));
     }
-    sendError(errorBody) {
-        this.sendMessage("error", errorBody);
+    query(key) {
+        this.send("query", key);
+    }
+    error(errorBody) {
+        this.send("error", errorBody);
     }
     handleMessage(message) {
         const data = (0, parseJson_1.parseJson)(message);
         if (!data) {
-            return this.sendError("Unvalid JSON format!");
+            return this.error("Unvalid JSON format!");
         }
-        const { method, body } = data;
-        if (typeof method != "string") {
-            return this.sendError("No method!");
+        const { method, body, set, get } = data;
+        method && Socket.methods[method](this, body);
+        if (typeof set == "object") {
+            if (typeof set.key != "string") {
+                return this.error("Unvalid set!");
+            }
+            this.set(set.key, set.value);
         }
-        if (!Socket.methods[method]) {
-            return this.sendError(`No method named [${method}]!`);
+        if (typeof get == "string") {
+            this.send("get", this.get(get));
         }
-        Socket.methods[method](this, body);
     }
 }
 exports.Socket = Socket;
