@@ -5,8 +5,8 @@ export class Socket {
     private static server?: WebSocketServer;
     
     private static socketCount = 0;
-    private static readonly sockets: Map<number, Socket> = new Map();
-    private static readonly methods: { [key: string]: (socket: Socket, data: any) => void } = {};
+    static readonly sockets: Map<number, Socket> = new Map();
+    static readonly methods: { [key: string]: (socket: Socket, data: any) => void } = {};
 
     public static listen(port: number) {
         const PORT = process.env.PORT || port;
@@ -18,6 +18,10 @@ export class Socket {
 
     static get(id: number) {
         return this.sockets.get(id);
+    }
+
+    static registerMethod(name: string, method: (socket: Socket, data: any) => void) {
+        this.methods[name] = method;
     }
     
     readonly id: number;

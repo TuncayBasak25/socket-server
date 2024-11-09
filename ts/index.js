@@ -13,6 +13,9 @@ class Socket {
     static get(id) {
         return this.sockets.get(id);
     }
+    static registerMethod(name, method) {
+        this.methods[name] = method;
+    }
     constructor(webSocket) {
         this.webSocket = webSocket;
         this.data = {};
