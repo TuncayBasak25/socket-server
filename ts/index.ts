@@ -20,6 +20,16 @@ export class Socket {
         return this.sockets.get(id);
     }
 
+    static getList(idList: number[]) {
+        const socketList = [];
+        for (const id of idList) {
+            const socket = this.get(id);
+            if (socket)
+                socketList.push(socket);
+        }
+        return socketList;
+    }
+
     static registerMethod(name: string, method: (socket: Socket, data: any) => void) {
         this.methods[name] = method;
     }

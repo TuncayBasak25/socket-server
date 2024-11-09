@@ -13,6 +13,15 @@ class Socket {
     static get(id) {
         return this.sockets.get(id);
     }
+    static getList(idList) {
+        const socketList = [];
+        for (const id of idList) {
+            const socket = this.get(id);
+            if (socket)
+                socketList.push(socket);
+        }
+        return socketList;
+    }
     static registerMethod(name, method) {
         this.methods[name] = method;
     }
