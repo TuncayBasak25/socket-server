@@ -54,9 +54,10 @@ export class Socket {
     }
 
     sendSet(key: number | string, value: any) {
-        const set: any = {};
-        set[key] = value;
-        this.send("set", set);
+        this.send("set", {
+            key,
+            value
+        });
     }
 
     sendGet(key: number | string) {

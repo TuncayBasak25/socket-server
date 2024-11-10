@@ -39,9 +39,10 @@ class Socket {
         this.send("action", { action, body });
     }
     sendSet(key, value) {
-        const set = {};
-        set[key] = value;
-        this.send("set", set);
+        this.send("set", {
+            key,
+            value
+        });
     }
     sendGet(key) {
         this.send("get", key);
