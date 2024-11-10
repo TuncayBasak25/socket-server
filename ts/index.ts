@@ -1,12 +1,14 @@
 import WebSocket, { WebSocketServer } from 'ws';
 import { parseJson } from './parseJson';
 
+type Method = "error" | "action" | "get" | "set";
+
 export class Socket {
     private static server?: WebSocketServer;
     
     private static socketCount = 0;
     static readonly sockets: Map<number, Socket> = new Map();
-    static readonly methods: { [key: string]: (socket: Socket, data: any) => void } = {};
+    static readonly actions: { [key: string]: (socket: Socket, data: any) => void } = {};
 
     public static listen(port: number) {
         const PORT = process.env.PORT || port;
@@ -29,13 +31,9 @@ export class Socket {
         }
         return socketList;
     }
-
-    static registerMethod(name: string, method: (socket: Socket, data: any) => void) {
-        this.methods[name] = method;
-    }
     
     readonly id: number;
-    readonly data: Map<string, any> = new Map();
+    readonly data: Map<string | number, any> = new Map();
     protected constructor(private readonly webSocket: WebSocket) {
         this.id = Socket.socketCount++;
         Socket.sockets.set(this.id, this);
@@ -45,52 +43,61 @@ export class Socket {
         webSocket.on("close", () => Socket.sockets.delete(this.id));
     }
 
-    set(key: string, value: any) {
-        this.data.set(key, value);
+    private send(method: Method, body: any) {
+        const data: any = {};
+        data[method] = body;
+        this.webSocket.send(JSON.stringify(data));
     }
 
-    get(key: string) {
-        return this.data.get(key);
+    sendAction(action: string, body: any = {}) {
+        this.send("action", { action, body })
     }
 
-    delete(key: string) {
-        this.data.delete(key);
+    sendSet(key: number | string, value: any) {
+        const set: any = {};
+        set[key] = value;
+        this.send("set", set);
     }
 
-    send(method: string, body: any) {
-        this.webSocket.send(JSON.stringify({
-            method,
-            body
-        }));
+    sendGet(key: number | string) {
+        this.send("get", key);
     }
 
-    query(key: string) {
-        this.send("query", key);
-    }
-
-    error(errorBody: any) {
-        this.send("error", errorBody);
+    sendError(errorBody: any = {}) {
+        this.send("error", { error: errorBody });
     }
 
     private handleMessage(message: string) {
         const data = parseJson(message);
 
         if (!data) {
-            return this.error("Unvalid JSON format!");
+            return this.sendError("Unvalid JSON format!");
         }
-        const { method, body, set, get } = data;
+        const { action, get, set } = data;
 
-        method && Socket.methods[method](this, body);
-
-        if (typeof set == "object") {
-            if (typeof set.key != "string") {
-                return this.error("Unvalid set!")
+        if (action) {
+            if (typeof action.action != "string") {
+                return this.sendError(`No action!`)
             }
-            this.set(set.key, set.value);
+            if (!Socket.actions[action.action]) {
+                return this.sendError(`No action named [${action.action}]`)
+            }
+            return Socket.actions[action.action](this, action.data);
         }
 
-        if (typeof get == "string") {
-            this.send("get", this.get(get));
+        if (get) {
+            if (typeof get == "string" || typeof get == "number") {
+                const value = this.data.get(get);
+                if (value) {
+                    this.sendSet(get, value);
+                }
+            }
+        }
+
+        if (set) {
+            if (typeof set.key == "string" || typeof set.key == "number") {
+                this.data.set(set.key, set.value);
+            }
         }
     }
 }

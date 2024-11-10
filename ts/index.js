@@ -22,9 +22,6 @@ class Socket {
         }
         return socketList;
     }
-    static registerMethod(name, method) {
-        this.methods[name] = method;
-    }
     constructor(webSocket) {
         this.webSocket = webSocket;
         this.data = new Map();
@@ -33,46 +30,56 @@ class Socket {
         webSocket.on("message", (rawData) => this.handleMessage(rawData.toString()));
         webSocket.on("close", () => Socket.sockets.delete(this.id));
     }
-    set(key, value) {
-        this.data.set(key, value);
-    }
-    get(key) {
-        return this.data.get(key);
-    }
-    delete(key) {
-        this.data.delete(key);
-    }
     send(method, body) {
-        this.webSocket.send(JSON.stringify({
-            method,
-            body
-        }));
+        const data = {};
+        data[method] = body;
+        this.webSocket.send(JSON.stringify(data));
     }
-    query(key) {
-        this.send("query", key);
+    sendAction(action, body = {}) {
+        this.send("action", { action, body });
     }
-    error(errorBody) {
-        this.send("error", errorBody);
+    sendSet(key, value) {
+        const set = {};
+        set[key] = value;
+        this.send("set", set);
+    }
+    sendGet(key) {
+        this.send("get", key);
+    }
+    sendError(errorBody = {}) {
+        this.send("error", { error: errorBody });
     }
     handleMessage(message) {
         const data = (0, parseJson_1.parseJson)(message);
         if (!data) {
-            return this.error("Unvalid JSON format!");
+            return this.sendError("Unvalid JSON format!");
         }
-        const { method, body, set, get } = data;
-        method && Socket.methods[method](this, body);
-        if (typeof set == "object") {
-            if (typeof set.key != "string") {
-                return this.error("Unvalid set!");
+        const { action, get, set } = data;
+        if (action) {
+            if (typeof action.action != "string") {
+                return this.sendError(`No action!`);
             }
-            this.set(set.key, set.value);
+            if (!Socket.actions[action.action]) {
+                return this.sendError(`No action named [${action.action}]`);
+            }
+            return Socket.actions[action.action](this, action.data);
         }
-        if (typeof get == "string") {
-            this.send("get", this.get(get));
+        if (get) {
+            if (typeof get == "string" || typeof get == "number") {
+                const value = this.data.get(get);
+                if (value) {
+                    this.sendSet(get, value);
+                }
+            }
+        }
+        if (set) {
+            if (typeof set.key == "string" || typeof set.key == "number") {
+                this.data.set(set.key, set.value);
+            }
         }
     }
 }
 exports.Socket = Socket;
 Socket.socketCount = 0;
 Socket.sockets = new Map();
-Socket.methods = {};
+Socket.actions = {};
