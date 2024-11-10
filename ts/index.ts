@@ -82,7 +82,7 @@ export class Socket {
             if (!Socket.actions[action.action]) {
                 return this.sendError(`No action named [${action.action}]`)
             }
-            return Socket.actions[action.action](this, action.data);
+            return Socket.actions[action.action](this, action.body);
         }
 
         if (get) {
