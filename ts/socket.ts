@@ -11,7 +11,7 @@ export namespace Socket {
     export function create(id: number, webSocket: WebSocket, methods: { [key: string]: (socket: Socket) => void }) {
         const data = new Map<number | string, any>();
 
-        const socket = {
+        const socket: Socket = {
             id,
             do: (method: string) => webSocket.send(JSON.stringify({ method })),
             set: (key: number | string, value: any) => {
